@@ -1,4 +1,7 @@
 # EduVox-Personalized-Learning-System
+
+#### Deployed web app: https://665f1b335314ce173eb967a8--fabulous-taiyaki-fc54bc.netlify.app/
+
 Project Description:
 
 EduVox is an innovative web application designed to make education more accessible for visually impaired students. By leveraging cutting-edge AI technologies such as speech recognition, text-to-speech (TTS), and image recognition, EduVox provides a comprehensive set of assistive tools that transform traditional learning materials into accessible formats.
