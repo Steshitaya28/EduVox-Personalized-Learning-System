@@ -1,1 +1,5 @@
+streamlit
+gradio
+pathlib
+dotenv
 google-generativeai
