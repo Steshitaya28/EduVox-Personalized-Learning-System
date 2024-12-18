@@ -88,12 +88,12 @@ def generate_audio_html(text):
 # File uploader and generate button
 uploaded_file = st.file_uploader("🖼️ Upload an image", accept_multiple_files=False, type=['jpg', 'png'])
 if uploaded_file is not None:
-    st.image(uploaded_file, caption='📷 Uploaded Image', use_column_width=True)
+    st.image(uploaded_file, caption='📷 Uploaded Image', use_container_width=True)
     bytes_data = uploaded_file.getvalue()
     if st.button("🚀 Generate Description", key='generate_button', help="Click to generate a description and audio for the uploaded image") or uploaded_file is not None:
         try:
             # Create GenerativeModel and generate content
-            model = genai.GenerativeModel('gemini-pro-vision')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(
                 glm.Content(parts=[
                     glm.Part(text="👩‍🏫 You are a teacher. Please analyze the uploaded image and provide a detailed and descriptive explanation of its content as if you are teaching a visually impaired student. Describe all the key elements, objects, people, actions, and any notable features present in the image. Ensure the description is clear, concise, and easy to understand."),
