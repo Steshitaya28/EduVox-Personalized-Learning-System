@@ -1,5 +1,5 @@
 streamlit
 gradio
 pathlib
-dotenv
+python-dotenv
 google-generativeai
