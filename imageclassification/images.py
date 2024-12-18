@@ -26,7 +26,7 @@ safety_settings = [
 
 # Initialize the GenerativeModel with the specified model name, configuration, and safety settings
 model = genai.GenerativeModel(
-    model_name="gemini-pro-vision",
+    model_name="gemini-1.5-flash",
     generation_config=generation_config,
     safety_settings=safety_settings,
 )
