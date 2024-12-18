@@ -1,90 +1,116 @@
+import streamlit as st
 import google.generativeai as genai
-from pathlib import Path
-import gradio as gr
-from dotenv import load_dotenv
-import os
+import google.ai.generativelanguage as glm
+from PIL import Image
+from gtts import gTTS
+import base64
 
-# Load environment variables from a .env file
-load_dotenv()
+# Set API key
+API_KEY = 'AIzaSyBBUYYDsafSEfDpafscAuthFMPZjVRyyZU'
+genai.configure(api_key=API_KEY)
 
-# Configure the GenerativeAI API key using the loaded environment variable
-genai.configure(api_key=os.getenv("AIzaSyB5X0Mdkwub3Tsmlzb06ZQoKYUUBHUUsoE"))
+# Set page config
+st.set_page_config(page_title="EduVox - Vision AI Learning Tool", page_icon="📚", layout="wide", initial_sidebar_state='collapsed')
 
-# Set up the model configuration for text generation
-generation_config = {
-    "temperature": 0.4,
-    "top_p": 1,
-    "top_k": 32,
-    "max_output_tokens": 4096,
-}
+# Custom CSS to style the page
+st.markdown("""
+    <style>
+        body {
+            background-color: #e6f7ff; /* Lighter shade of blue background */
+            color: #333; /* Dark text color */
+            font-family: Arial, sans-serif; /* Formal font */
+            background-image: url('https://cdn.pixabay.com/photo/2015/10/22/02/08/books-1001629_960_720.jpg'); /* Background image of books */
+            background-repeat: repeat; /* Repeat background image */
+            background-size: cover; /* Cover the entire background */
+        }
+        .main-header {
+            background-color: #00BFFF; /* Deep sky blue color */
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 30px;
+        }
+        .upload-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .generate-button {
+            background-color: #87CEEB; /* Sky blue color */
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Added box-shadow for button */
+        }
+        .generate-button:hover {
+            background-color: #4682B4; /* Darker blue color */
+        }
+        .description {
+            background-color: #E0FFFF; /* Light cyan background */
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        .credits {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# Define safety settings for content generation
-safety_settings = [
-    {"category": f"HARM_CATEGORY_{category}", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}
-    for category in ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT"]
-]
+# Header
+st.markdown('<div class="main-header">EduVox - Vision AI Learning Tool</div>', unsafe_allow_html=True)
 
-# Initialize the GenerativeModel with the specified model name, configuration, and safety settings
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    generation_config=generation_config,
-    safety_settings=safety_settings,
-)
-# Function to read image data from a file path
-def read_image_data(file_path):
-    image_path = Path(file_path)
-    if not image_path.exists():
-        raise FileNotFoundError(f"Could not find image: {image_path}")
-    return {"mime_type": "image/jpeg", "data": image_path.read_bytes()}
+# Function to generate audio and return HTML
+def generate_audio_html(text):
+    tts = gTTS(text=text, lang='en')
+    audio_path = "output.mp3"
+    tts.save(audio_path)
+    with open(audio_path, "rb") as audio_file:
+        audio_bytes = audio_file.read()
+    audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+    audio_html = f"""
+    <audio autoplay>
+        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+    </audio>
+    """
+    return audio_html
 
-# Function to generate a response based on a prompt and an image path
-def generate_gemini_response(prompt, image_path):
-    image_data = read_image_data(image_path)
-    response = model.generate_content([prompt, image_data])
-    return response.text
+# File uploader and generate button
+uploaded_file = st.file_uploader("🖼️ Upload an image", accept_multiple_files=False, type=['jpg', 'png'])
+if uploaded_file is not None:
+    st.image(uploaded_file, caption='📷 Uploaded Image', use_column_width=True)
+    bytes_data = uploaded_file.getvalue()
+    if st.button("🚀 Generate Description", key='generate_button', help="Click to generate a description and audio for the uploaded image") or uploaded_file is not None:
+        try:
+            # Create GenerativeModel and generate content
+            model = genai.GenerativeModel('gemini-pro-vision')
+            response = model.generate_content(
+                glm.Content(parts=[
+                    glm.Part(text="👩‍🏫 You are a teacher. Please analyze the uploaded image and provide a detailed and descriptive explanation of its content as if you are teaching a visually impaired student. Describe all the key elements, objects, people, actions, and any notable features present in the image. Ensure the description is clear, concise, and easy to understand."),
+                    glm.Part(inline_data=glm.Blob(mime_type='image/jpeg', data=bytes_data)),
+                ]),
+                stream=True
+            )
+            response.resolve()
 
-# Initial input prompt for the plant pathologist
-input_prompt = """
-As a highly skilled plant pathologist, your expertise is indispensable in our pursuit of maintaining optimal plant health. You will be provided with information or samples related to plant diseases, and your role involves conducting a detailed analysis to identify the specific issues, propose solutions, and offer recommendations.
+            # Get description text
+            description = response.text
+            st.markdown(f'<div class="description">{description}</div>', unsafe_allow_html=True)
 
-*Analysis Guidelines:*
+            # Generate and display audio
+            audio_html = generate_audio_html(description)
+            st.markdown(audio_html, unsafe_allow_html=True)
 
-1. *Disease Identification:* Examine the provided information or samples to identify and characterize plant diseases accurately.
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
-2. *Detailed Findings:* Provide in-depth findings on the nature and extent of the identified plant diseases, including affected plant parts, symptoms, and potential causes.
-
-3. *Next Steps:* Outline the recommended course of action for managing and controlling the identified plant diseases. This may involve treatment options, preventive measures, or further investigations.
-
-4. *Recommendations:* Offer informed recommendations for maintaining plant health, preventing disease spread, and optimizing overall plant well-being.
-
-5. *Important Note:* As a plant pathologist, your insights are vital for informed decision-making in agriculture and plant management. Your response should be thorough, concise, and focused on plant health.
-
-*Disclaimer:*
-"Please note that the information provided is based on plant pathology analysis and should not replace professional agricultural advice. Consult with qualified agricultural experts before implementing any strategies or treatments."
-
-Your role is pivotal in ensuring the health and productivity of plants. Proceed to analyze the provided information or samples, adhering to the structured 
-"""
-
-# Function to process uploaded files and generate a response
-def process_uploaded_files(files):
-    file_path = files[0].name if files else None
-    response = generate_gemini_response(input_prompt, file_path) if file_path else None
-    return file_path, response
-
-# Gradio interface setup
-with gr.Blocks() as demo:
-    file_output = gr.Textbox()
-    image_output = gr.Image()
-    combined_output = [image_output, file_output]
-
-    # Upload button for user to provide images
-    upload_button = gr.UploadButton(
-        "Click to Upload an Image",
-        file_types=["image"],
-        file_count="multiple",
-    )
-     # Set up the upload button to trigger the processing function
-    upload_button.upload(process_uploaded_files, upload_button, combined_output)
-
-# Launch the Gradio interface with debug mode enabled
-demo.launch(debug=True)
